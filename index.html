@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple ToDo App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <h1 class="text-2xl font-bold mb-4 text-center">ToDo List</h1>
+        
+        <div class="flex mb-4">
+            <input type="text" id="taskInput" placeholder="Введите задачу..." class="flex-1 p-2 border rounded-l-lg focus:outline-none">
+            <button onclick="addTask()" class="bg-blue-500 text-white p-2 rounded-r-lg hover:bg-blue-600">Добавить</button>
+        </div>
+
+        <ul id="taskList" class="space-y-2"></ul>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:8080/tasks";
+
+        window.onload = function() {
+            fetchTasks();
+        };
+
+        async function fetchTasks() {
+            try {
+                const response = await fetch(API_URL);
+                const tasks = await response.json();
+                const taskList = document.getElementById("taskList");
+                taskList.innerHTML = ""; 
+
+                tasks.forEach(task => {
+                    const li = document.createElement("li");
+                    li.className = "flex justify-between items-center p-2 bg-gray-200 rounded-lg";
+                    li.innerHTML = `
+                        <span class="${task.completed ? 'line-through text-gray-500' : ''}">${task.title}</span>
+                        <div>
+                            <button onclick="toggleTask('${task.id}', '${task.title}', ${!task.completed})" class="bg-green-500 text-white px-2 py-1 rounded mr-2 hover:bg-green-600">
+                                ${task.completed ? 'Отменить' : 'Выполнено'}
+                            </button>
+                            <button onclick="deleteTask('${task.id}')" class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">Удалить</button>
+                        </div>
+                    `;
+                    taskList.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Ошибка при загрузке задач:", error);
+            }
+        }
+
+        async function addTask() {
+            const taskInput = document.getElementById("taskInput");
+            const title = taskInput.value.trim();
+            
+            if (!title) {
+                alert("Введите название задачи!");
+                return;
+            }
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title })
+                });
+
+                if (response.ok) {
+                    taskInput.value = ""; // Очищаем поле
+                    fetchTasks(); // Обновляем список
+                } else {
+                    throw new Error("Ошибка при добавлении задачи");
+                }
+            } catch (error) {
+                console.error("Ошибка:", error);
+                alert("Не удалось добавить задачу");
+            }
+        }
+
+        async function toggleTask(id, title, completed) {
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title, completed }) 
+                });
+
+                if (response.ok) {
+                    fetchTasks(); 
+                } else {
+                    throw new Error("Ошибка при обновлении задачи");
+                }
+            } catch (error) {
+                console.error("Ошибка:", error);
+                alert("Не удалось обновить задачу");
+            }
+        }
+
+        async function deleteTask(id) {
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: "DELETE"
+                });
+
+                if (response.ok) {
+                    fetchTasks(); 
+                } else {
+                    throw new Error("Ошибка при удалении задачи");
+                }
+            } catch (error) {
+                console.error("Ошибка:", error);
+                alert("Не удалось удалить задачу");
+            }
+        }
+    </script>
+</body>
+</html>
